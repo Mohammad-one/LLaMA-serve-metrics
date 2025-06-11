@@ -1,13 +1,14 @@
-import openai
 import concurrent.futures
 import time
+
+import openai
 
 client = openai.OpenAI(
     base_url="http://192.168.70.137:8080",
     api_key="sk-no-key-required"
 )
 
-# Create a list of different messages for each session
+# simple content
 """messages_list = [
     {"role": "system", "content": "Give me a 100-word essay about the capital of italy."},
     {"role": "system", "content": "Give me a 100-word essay about the Eiffel Tower."},
@@ -21,6 +22,7 @@ client = openai.OpenAI(
     {"role": "system", "content": "Explain the role of Paris in greece history in 100 words."}
 ]"""
 
+# complex content (include details)
 messages_list = [
     {"role": "system", "content": "Provide a detailed analysis of the political, economic, and cultural influence of Italy's capital, Rome, on European and global affairs over the past century."},
     {"role": "system", "content": "Describe the architectural evolution of the Eiffel Tower, including its original design, modifications over time, and its impact on modern architecture."},
@@ -39,7 +41,7 @@ def send_request(session_id, message):
     try:
         completion = client.chat.completions.create(
             model="facebook/opt-350m",
-            messages=[message]  # Use the specific message for this session
+            messages=[message]
         )
         response_text = completion.choices[0].message.content
         end_time = time.time()
