@@ -6,12 +6,17 @@ client = openai.OpenAI(
 )
 
 stream = client.chat.completions.create(
-    model="qwen",
+    model="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
     messages=[
-        {"role": "system", "content": "What is the history of Tehran in 200 words?"}
+        {"role": "system", "content": "give me a 200 word essay"}
     ],
-    stream=True
+    stream=True,
+    max_tokens=200,
+    stream_options={
+        "include_usage": True
+    }
 )
+
 
 i = 0
 for chunk in stream:
