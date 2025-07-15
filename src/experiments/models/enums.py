@@ -7,14 +7,15 @@ class ColumnType(Enum):
     FLOAT = "float"
     STRING = "str"
 
+
 class ContentType(Enum):
     SIMPLE = "simple"
     SEMANTIC = "semantic"
     COMPLEX = "complex"
     RENDER = "render"
 
+
 class BenchmarkColumns(Enum):
-    """Enum representing the benchmark columns and their data types"""
     SESSION_ID = ("session_id", ColumnType.INTEGER)
     BEGIN_TIME = ("BT", ColumnType.DATETIME)
     FIRST_TOKEN_TIME = ("FT", ColumnType.DATETIME)
@@ -34,20 +35,4 @@ class BenchmarkColumns(Enum):
 
     @classmethod
     def get_all_columns(cls):
-        """Returns all columns as a list of tuples (name, type)"""
         return [(column.value[0], column.value[1].value) for column in cls]
-
-class metric_enums(Enum):
-    'session_id': session_id,
-    'BT': time.time(),
-    'FT': None,
-    'LT': None,
-    'prompt_tokens': None,
-    'prompt_ms': None,
-    'prompt_per_token_ms': None,
-    'prompt_per_second': None,
-    'predicted_ms': None,
-    'predicted_per_token_ms': None,
-    'predicted_per_second': None,
-    'content': "",
-    'error': None
