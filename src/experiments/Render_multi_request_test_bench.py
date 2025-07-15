@@ -2,80 +2,56 @@ import random
 import openai
 import concurrent.futures
 import time
-import openpyxl
 import os
-from openpyxl.styles import Font
+import csv
 from datetime import datetime
 from src.experiments.models.enums import BenchmarkColumns, ContentType
 from transformers import AutoTokenizer
 
-CLIENT_COUNTS = [10, 50, 100]
-PROMPT_LENGTHS = [512, 1024, 2048]
+CLIENT_COUNTS = [2]
+PROMPT_LENGTHS = [10, 5000]
 CONTENT_TYPE = ContentType.RENDER
 MAX_TOKENS = 1
-BASE_DIR = r"C:\Users\ASUS\Desktop\Pars\HardwareAware\src\experiments\data\tamrin_tets"
+BASE_DIR = r"C:\Users\ASUS\Desktop\Pars\HardwareAware\src\experiments\data\rendering"
 
 client = openai.OpenAI(
     base_url="http://192.168.70.137:8080",
+    # base_url="http://192.168.88.33:8080/v1",
     api_key="sk-no-key-required"
 )
 
-tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
-COLUMNS = BenchmarkColumns.get_all_columns()
+tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")  # ashkan
+# tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-0.6B")#peyman
+
+COLUMNS = [col[0] for col in BenchmarkColumns.get_all_columns()]
 
 
-def init_excel_file(client_count, prompt_length):
-    excel_filename = f"{client_count}_{prompt_length}_{MAX_TOKENS}_{CONTENT_TYPE.value.lower()}.xlsx"
-    excel_path = os.path.join(BASE_DIR, excel_filename)
+def init_csv_file(client_count, prompt_length):
+    csv_filename = f"{client_count}_{prompt_length}_{MAX_TOKENS}_{CONTENT_TYPE.value.lower()}.csv"
+    csv_path = os.path.join(BASE_DIR, csv_filename)
 
-    directory = os.path.dirname(excel_path)
+    directory = os.path.dirname(csv_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    if os.path.exists(excel_path):
-        workbook = openpyxl.load_workbook(excel_path)
-        sheet = workbook.active
+    if not os.path.exists(csv_path) or os.stat(csv_path).st_size == 0:
+        with open(csv_path, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=COLUMNS)
+            writer.writeheader()
 
-        if sheet.max_row == 0 or sheet.cell(row=1, column=1).value != COLUMNS[0][0]:
-            for col_idx, (header, _) in enumerate(COLUMNS, start=1):
-                sheet.cell(row=1, column=col_idx, value=header).font = Font(bold=True)
-            workbook.save(excel_path)
-    else:
-        workbook = openpyxl.Workbook()
-        sheet = workbook.active
-        sheet.title = "Benchmark Results"
-
-        for col_idx, (header, _) in enumerate(COLUMNS, start=1):
-            sheet.cell(row=1, column=col_idx, value=header).font = Font(bold=True)
-
-        workbook.save(excel_path)
-
-    return workbook, sheet, excel_path
+    return csv_path
 
 
-def save_to_excel(metrics, workbook, sheet, excel_path):
-    row_data = []
-    for col_name, col_type in COLUMNS:
-        value = metrics.get(col_name)
+def save_to_csv(metrics, csv_path):
+    saved_metrics = {k: v for k, v in metrics.items() if k in COLUMNS}
 
-        if col_type == "datetime" and value is not None:
-            value = datetime.fromtimestamp(value)
+    for col_name, value in saved_metrics.items():
+        if value is not None and isinstance(value, datetime):
+            saved_metrics[col_name] = value.strftime('%Y-%m-%d %H:%M:%S.%f')
 
-        row_data.append(value)
-
-    sheet.append(row_data)
-
-    for col_idx, (_, col_type) in enumerate(COLUMNS, start=1):
-        cell = sheet.cell(row=sheet.max_row, column=col_idx)
-
-        if col_type == "datetime":
-            cell.number_format = 'HH:MM:SS.000'
-        elif col_type == "float":
-            cell.number_format = '0.000'
-        elif col_type == "int":
-            cell.number_format = '0'
-
-    workbook.save(excel_path)
+    with open(csv_path, 'a', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=COLUMNS)
+        writer.writerow(saved_metrics)
 
 
 def generate_prompt(prompt_length):
@@ -85,7 +61,7 @@ def generate_prompt(prompt_length):
     return tokenizer.decode(tokenizer.convert_tokens_to_ids(selected_tokens))
 
 
-def send_request(session_id, workbook, sheet, excel_path, prompt):
+def send_request(session_id, csv_path, prompt):
     metrics = {
         'session_id': session_id,
         'BT': time.time(),
@@ -104,6 +80,7 @@ def send_request(session_id, workbook, sheet, excel_path, prompt):
 
     try:
         stream = client.chat.completions.create(
+            # model="Qwen/Qwen3-0.6B", #peyman
             model="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
             messages=[{"role": "system", "content": prompt}],
             stream=True,
@@ -146,8 +123,13 @@ def send_request(session_id, workbook, sheet, excel_path, prompt):
     except Exception as e:
         metrics['error'] = str(e)
 
-    metrics['content_sample'] = (metrics['content'][:100] ) if metrics['content'] else None
-    save_to_excel(metrics, workbook, sheet, excel_path)
+    for time_field in ['BT', 'FT', 'LT']:
+        if metrics[time_field] is not None:
+            metrics[time_field] = datetime.fromtimestamp(metrics[time_field])
+
+    metrics['content_sample'] = (metrics['content'][:100]) if metrics['content'] else None
+
+    save_to_csv(metrics, csv_path)
     return metrics
 
 
@@ -155,24 +137,22 @@ def run_benchmark_for_config(client_count, prompt_length):
     print(f"\nStarting benchmark with {client_count} clients and {prompt_length} token prompt...")
 
     prompt = generate_prompt(prompt_length)
-
-    workbook, sheet, excel_path = init_excel_file(client_count, prompt_length)
+    csv_path = init_csv_file(client_count, prompt_length)
 
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=client_count) as executor:
-            futures = {executor.submit(send_request, i, workbook, sheet, excel_path, prompt): i
+            futures = {executor.submit(send_request, i, csv_path, prompt): i
                        for i in range(client_count)}
 
             for future in concurrent.futures.as_completed(futures):
                 session_id = futures[future]
                 try:
-                    metrics = future.result()
+                    future.result()
                     print(f"Session {session_id} completed successfully")
                 except Exception as e:
                     print(f"Session {session_id} failed with error: {str(e)}")
     finally:
-        workbook.close()
-        print(f"Results saved to: {excel_path}")
+        print(f"Results saved to: {csv_path}")
 
 
 def run_all_benchmarks():

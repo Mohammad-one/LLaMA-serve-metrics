@@ -36,3 +36,18 @@ class BenchmarkColumns(Enum):
     def get_all_columns(cls):
         """Returns all columns as a list of tuples (name, type)"""
         return [(column.value[0], column.value[1].value) for column in cls]
+
+class metric_enums(Enum):
+    'session_id': session_id,
+    'BT': time.time(),
+    'FT': None,
+    'LT': None,
+    'prompt_tokens': None,
+    'prompt_ms': None,
+    'prompt_per_token_ms': None,
+    'prompt_per_second': None,
+    'predicted_ms': None,
+    'predicted_per_token_ms': None,
+    'predicted_per_second': None,
+    'content': "",
+    'error': None
