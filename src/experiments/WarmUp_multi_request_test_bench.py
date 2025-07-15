@@ -1,3 +1,5 @@
+import random
+
 import openai
 import concurrent.futures
 import time
@@ -5,35 +7,32 @@ import openpyxl
 import os
 from openpyxl.styles import Font
 from datetime import datetime
+from src.experiments.models.enums import BenchmarkColumns, ContentType
 
-NUMBER_OF_CLIENTS = 2
-EXCEL_PATH = r"src/experiments/multiple_request_benchmark.xlsx"
+from transformers import AutoTokenizer
 
+NUMBER_OF_CLIENTS = 13
+Number_of_prompts = 512
+content_type = ContentType.RENDER
+max_tokens = 1
+BASE_DIR = r"C:\Users\ASUS\Desktop\Pars\HardwareAware\src\experiments\data"
+
+EXCEL_FILENAME = f"{NUMBER_OF_CLIENTS}_{Number_of_prompts}_{max_tokens}_{content_type.value.lower()}.xlsx"
+EXCEL_PATH = os.path.join(BASE_DIR, EXCEL_FILENAME)
+
+tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
+vocab = list(tokenizer.get_vocab().keys())
+random.seed(42)
+selected_tokens = random.sample(vocab, Number_of_prompts)
+prompt = tokenizer.decode(tokenizer.convert_tokens_to_ids(selected_tokens))
+prompt = '<｜begin▁of▁sentence｜>' + '<｜User｜>' + prompt + '<｜Assistant｜>'
 
 client = openai.OpenAI(
     base_url="http://192.168.88.130:8080",
     api_key="sk-no-key-required"
 )
 
-# TODO : have to clean the code and write enums for below list
-COLUMNS = [
-    ("session_id", "int"),
-    ("BT", "datetime"),
-    ("FT", "datetime"),
-    ("LT", "datetime"),
-    ("prompt_tokens", "int"),
-    ("prompt_ms", "float"),
-    ("prompt_per_token_ms", "float"),
-    ("prompt_per_second", "float"),
-    ("predicted_ms", "float"),
-    ("predicted_per_token_ms", "float"),
-    ("predicted_per_second", "float"),
-    ("TTFT", "float"),
-    ("TGT", "float"),
-    ("PP", "float"),
-    ("error", "str"),
-    ("content_sample", "str")
-]
+COLUMNS = BenchmarkColumns.get_all_columns()
 
 
 def init_excel_file():
@@ -72,14 +71,12 @@ def save_to_excel(metrics, workbook, sheet):
 
         row_data.append(value)
 
-
     sheet.append(row_data)
 
     for col_idx, (_, col_type) in enumerate(COLUMNS, start=1):
         cell = sheet.cell(row=sheet.max_row, column=col_idx)
 
         if col_type == "datetime":
-            #cell.number_format = 'YYYY-MM-DD HH:MM:SS.000'
             cell.number_format = 'HH:MM:SS.000'
         elif col_type == "float":
             cell.number_format = '0.000'
@@ -110,11 +107,12 @@ def send_request(session_id, workbook, sheet):
         stream = client.chat.completions.create(
             model="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
             messages=[{"role": "system",
-                       #"content": "XXXXXXXXXXXXXXX"}],
-                       "content": "give me a 1000 word essay"}],
-                       #"content": "Translate the following sentence into French: The cat sat on the mat."}],
-                       #"content": "A man is getting ready to go for a run. He puts on his... : Options: A) swimming goggles. B) running shoes. C) winter coat. D) chef’s hat. <think> </think>"}],
-            # correct answer is B
+                       # "content": "A train leaves station A at 60 mph. Two hours later, another train leaves station B (300 miles away) at 80 mph towards station A. At what time and distance from station A will they meet? Show your reasoning step-by-step."}],
+                       # "content": "give me a 1000 word essay"}],  # simple_content
+                       "content": prompt}],  # simple_content
+            # "content": "Translate the following sentence into French: The cat sat on the mat."}],  #COMPLEX content
+            # "content": "A man is getting ready to go for a run. He puts on his... : Options: A) swimming goggles. B) running shoes. C) winter coat. D) chef’s hat. <think> </think>"}],
+            # Semantic  correct answer is B
             stream=True,
             max_tokens=200,
             stream_options={"include_usage": True}
@@ -155,7 +153,7 @@ def send_request(session_id, workbook, sheet):
     except Exception as e:
         metrics['error'] = str(e)
 
-    metrics['content_sample'] = (metrics['content'][:100] + "...") if metrics['content'] else None
+    metrics['content_sample'] = (metrics['content'][:100]) if metrics['content'] else None
 
     save_to_excel(metrics, workbook, sheet)
     return metrics
