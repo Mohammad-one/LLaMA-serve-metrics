@@ -36,3 +36,16 @@ class BenchmarkColumns(Enum):
     @classmethod
     def get_all_columns(cls):
         return [(column.value[0], column.value[1].value) for column in cls]
+
+
+class QuestionsEnum(Enum):
+    COLOR_OF_THE_SKY = "What is the color of the sky?"
+    MATH_EXPRESSION = "2 + 3 * 4 / 6 is ?"
+    HUMAN_EYES = "How many eyes does a human have?"
+    DOGS_FLY = "Can dogs fly?"
+    DAYS_IN_A_WEEK = "How many days are in a week?"
+    OCEAN_COLOR = "What is the color of the ocean on a map?"
+    TWO_PLUS_TWO = "What is 2 plus 2?"
+    CAPITAL_OF_FRANCE = "What is the capital of France?"
+    CONTINENTS = "How many continents are there?"
+    MAIN_INGREDIENT_OF_YOGURT = "What is the main ingredient in yogurt?"
