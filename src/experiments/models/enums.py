@@ -21,6 +21,7 @@ class BenchmarkColumns(Enum):
     FIRST_TOKEN_TIME = ("FT", ColumnType.DATETIME)
     LAST_TOKEN_TIME = ("LT", ColumnType.DATETIME)
     PROMPT_TOKENS = ("prompt_tokens", ColumnType.INTEGER)
+    COMPLETION_TOKENS = ("completion_tokens", ColumnType.INTEGER)
     PROMPT_MS = ("prompt_ms", ColumnType.FLOAT)
     PROMPT_PER_TOKEN_MS = ("prompt_per_token_ms", ColumnType.FLOAT)
     PROMPT_PER_SECOND = ("prompt_per_second", ColumnType.FLOAT)
@@ -30,8 +31,8 @@ class BenchmarkColumns(Enum):
     TIME_TO_FIRST_TOKEN = ("TTFT", ColumnType.FLOAT)
     TIME_GENERATION_TIME = ("TGT", ColumnType.FLOAT)
     PP = ("PP", ColumnType.FLOAT)
+    TG = ("TG", ColumnType.FLOAT)
     ERROR = ("error", ColumnType.STRING)
-    CONTENT_SAMPLE = ("content_sample", ColumnType.STRING)
 
     @classmethod
     def get_all_columns(cls):
