@@ -8,14 +8,14 @@ from datetime import datetime
 from src.experiments.models.enums import BenchmarkColumns, ContentType
 from transformers import AutoTokenizer
 
-CLIENT_COUNTS = [2]
-PROMPT_LENGTHS = [200]
+CLIENT_COUNTS = [10, 30, 50]
+PROMPT_LENGTHS = [512, 1024, 2048]
 CONTENT_TYPE = ContentType.RENDER
-MAX_TOKENS = 100
+MAX_TOKENS = 2
 BASE_DIR = r"C:\Users\ASUS\Desktop\Pars\HardwareAware\src\experiments\data\Llama_cpp_Ashkan_final"
 
 client = openai.OpenAI(
-    base_url="http://192.168.88.130:8080",
+    base_url="http://192.168.70.137:8080",
     # base_url="http://192.168.70.124:5000/v1",
     api_key="sk-no-key-required"
 )
@@ -163,6 +163,8 @@ def run_all_benchmarks():
 
     for client_count in CLIENT_COUNTS:
         for prompt_length in PROMPT_LENGTHS:
+            time.sleep(3)
+            print(f'next Benchmark {client_count}_{prompt_length}_{MAX_TOKENS}_{CONTENT_TYPE.value.lower()} will start 3s later')
             run_benchmark_for_config(client_count, prompt_length)
 
     print("\nAll benchmark tests completed!")
