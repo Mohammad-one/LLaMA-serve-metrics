@@ -9,14 +9,14 @@ from src.experiments.models.enums import BenchmarkColumns, ContentType
 from transformers import AutoTokenizer
 
 CLIENT_COUNTS = [2]
-PROMPT_LENGTHS = [10, 5000]
+PROMPT_LENGTHS = [10]
 CONTENT_TYPE = ContentType.RENDER
 MAX_TOKENS = 1
 BASE_DIR = r"C:\Users\ASUS\Desktop\Pars\HardwareAware\src\experiments\data\rendering"
 
 client = openai.OpenAI(
-    base_url="http://192.168.70.137:8080",
-    # base_url="http://192.168.88.33:8080/v1",
+    #base_url="http://192.168.88.130:8080",
+     base_url="http://192.168.70.124:5000/v1",
     api_key="sk-no-key-required"
 )
 
@@ -118,7 +118,7 @@ def send_request(session_id, csv_path, prompt):
         if metrics['LT'] and metrics['FT']:
             metrics['TGT'] = (metrics['LT'] - metrics['FT']) * 1000
         if metrics.get('TTFT') and metrics['prompt_tokens']:
-            metrics['PP'] = (metrics['TTFT'] / metrics['prompt_tokens'])
+            metrics['PP'] = metrics['prompt_tokens'] / ((metrics['TTFT'])/1000)
 
     except Exception as e:
         metrics['error'] = str(e)
