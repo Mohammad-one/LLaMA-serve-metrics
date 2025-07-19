@@ -124,7 +124,7 @@ def send_request(session_id, csv_path, prompt):
         if metrics['LT'] and metrics['FT']:
             metrics['TGT'] = (metrics['LT'] - metrics['FT']) * 1000
         if metrics.get('TTFT') and metrics['prompt_tokens']:
-            metrics['PP'] = (metrics['TTFT'] / metrics['prompt_tokens'])
+            metrics['PP'] = metrics['prompt_tokens'] / ((metrics['TTFT'])/1000)
 
     except Exception as e:
         metrics['error'] = str(e)
