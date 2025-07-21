@@ -5,29 +5,28 @@ import time
 import os
 import csv
 from datetime import datetime
-from src.experiments.models.enums import BenchmarkColumns, ContentType
-from transformers import AutoTokenizer
+from src.experiments.models.enums import BenchmarkColumns, ContentType, graphic_card, LlmModel
 
-CLIENT_COUNTS = [10, 30, 50]
-PROMPT_LENGTHS = [512, 1024, 2048]
+CLIENT_COUNTS = [50, 30, 10]
+PROMPT_LENGTHS = [2048, 1024,512 ]
 CONTENT_TYPE = ContentType.RENDER
+graphic_type = graphic_card.RTX5000
 MAX_TOKENS = 2
 BASE_DIR = r"C:\Users\ASUS\Desktop\Pars\HardwareAware\src\experiments\data\Llama_cpp_Ashkan_final"
 
 client = openai.OpenAI(
     base_url="http://192.168.70.137:8080",
-    # base_url="http://192.168.70.124:5000/v1",
+    #base_url="http://192.168.70.154:8080/v1",
     api_key="sk-no-key-required"
 )
-
-tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")  # ashkan
-# tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-0.6B")#peyman
+model = LlmModel.QWEN_15B
+tokenizer = model.get_tokenizer()
 
 COLUMNS = [col[0] for col in BenchmarkColumns.get_all_columns()]
 
 
 def init_csv_file(client_count, prompt_length):
-    csv_filename = f"{client_count}_{prompt_length}_{MAX_TOKENS}_{CONTENT_TYPE.value.lower()}.csv"
+    csv_filename = f"{client_count}_{prompt_length}_{MAX_TOKENS}_{CONTENT_TYPE.value.lower()}_{graphic_type.value}.csv"
     csv_path = os.path.join(BASE_DIR, csv_filename)
 
     directory = os.path.dirname(csv_path)
@@ -44,7 +43,6 @@ def init_csv_file(client_count, prompt_length):
 
 def save_to_csv(metrics, csv_path):
     saved_metrics = {k: v for k, v in metrics.items() if k in COLUMNS}
-
 
     with open(csv_path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=COLUMNS)
@@ -65,6 +63,9 @@ def send_request(session_id, csv_path, prompt):
         'FT': None,
         'LT': None,
         'TGT': None,
+        'PP': None,
+        'TG': None,
+        'TTFT': None,
         'completion_tokens': None,
         'prompt_tokens': None,
         'prompt_ms': None,
@@ -77,56 +78,56 @@ def send_request(session_id, csv_path, prompt):
         'error': None
     }
 
-    try:
-        metrics['BT'] = time.time()
-        stream = client.chat.completions.create(
-            # model="Qwen/Qwen3-0.6B", #peyman
-            model="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
-            messages=[{"role": "system", "content": prompt}],
-            stream=True,
-            max_tokens=MAX_TOKENS,
-            stream_options={"include_usage": True}
-        )
+    # try:
+    metrics['BT'] = time.time()
+    stream = client.chat.completions.create(
+        model=LlmModel.QWEN_15B.value,
+        messages=[{"role": "system", "content": prompt}],
+        stream=True,
+        max_tokens=MAX_TOKENS,
+        temperature=0.8,
+        top_p=0.95,
+        stream_options={"include_usage": True}
+    )
 
-        for chunk in stream:
-            if metrics['FT'] is None and chunk.choices[0].delta.content:
-                metrics['FT'] = time.time()
+    for chunk in stream:
+        print("#", chunk.model_dump())
+        if metrics['FT'] is None and chunk.choices[0].delta.content:
+            metrics['FT'] = time.time()
 
-            if chunk.choices[0].delta.content:
-                metrics['content'] += chunk.choices[0].delta.content
-            else:
-                if hasattr(chunk, 'usage') and hasattr(chunk, 'model_extra'):
-                    usage_data = chunk.usage
-                    timings_data = chunk.model_extra.get('timings', {}) if hasattr(chunk, 'model_extra') else {}
+        if len(chunk.choices) and chunk.choices[0].delta.content:
+            metrics['content'] += chunk.choices[0].delta.content
 
-                    metrics.update({
-                        'prompt_tokens': usage_data.prompt_tokens if hasattr(usage_data, 'prompt_tokens') else None,
-                        'completion_tokens': usage_data.completion_tokens if hasattr(usage_data,
-                                                                                 'completion_tokens') else None,
-                        'prompt_ms': timings_data.get('prompt_ms'),
-                        'prompt_per_token_ms': timings_data.get('prompt_per_token_ms'),
-                        'prompt_per_second': timings_data.get('prompt_per_second'),
-                        'predicted_ms': timings_data.get('predicted_ms'),
-                        'predicted_per_token_ms': timings_data.get('predicted_per_token_ms'),
-                        'predicted_per_second': timings_data.get('predicted_per_second')
-                    })
+        print(hasattr(chunk, 'usage'))
+        if hasattr(chunk, 'usage'):
+            print(chunk.model_dump())
+            usage_data = chunk.usage
+            timings_data = chunk.model_extra.get('timings', {}) if hasattr(chunk, 'model_extra') else {}
 
-            if chunk.choices[0].finish_reason:
-                metrics['LT'] = time.time()
-                break
+            metrics.update({
+                'prompt_tokens': usage_data.prompt_tokens if hasattr(usage_data, 'prompt_tokens') else None,
+                'completion_tokens': usage_data.completion_tokens if hasattr(usage_data,
+                                                                             'completion_tokens') else None,
+                'prompt_ms': timings_data.get('prompt_ms'),
+                'prompt_per_token_ms': timings_data.get('prompt_per_token_ms'),
+                'prompt_per_second': timings_data.get('prompt_per_second'),
+                'predicted_ms': timings_data.get('predicted_ms'),
+                'predicted_per_token_ms': timings_data.get('predicted_per_token_ms'),
+                'predicted_per_second': timings_data.get('predicted_per_second')
+            })
+
+        if metrics['LT'] is None and chunk.choices[0].finish_reason:
+            metrics['LT'] = time.time()
+            # break
 
         if metrics['FT'] and metrics['BT']:
             metrics['TTFT'] = (metrics['FT'] - metrics['BT']) * 1000
         if metrics['LT'] and metrics['FT']:
-            metrics['TGT'] = (metrics['LT'] - metrics['FT']) * 1000
+            metrics['TGT'] = abs((metrics['LT'] - metrics['FT']) * 1000)
         if metrics.get('TTFT') and metrics['prompt_tokens']:
             metrics['PP'] = metrics['prompt_tokens'] / ((metrics['TTFT']) / 1000)
         if metrics.get('TGT') and metrics['completion_tokens']:
             metrics['TG'] = metrics['completion_tokens'] / (metrics['TGT'] / 1000)
-
-
-    except Exception as e:
-        metrics['error'] = str(e)
 
     for time_field in ['BT', 'FT', 'LT']:
         if metrics[time_field] is not None:
@@ -149,11 +150,8 @@ def run_benchmark_for_config(client_count, prompt_length):
 
             for future in concurrent.futures.as_completed(futures):
                 session_id = futures[future]
-                try:
-                    future.result()
-                    print(f"Session {session_id} completed successfully")
-                except Exception as e:
-                    print(f"Session {session_id} failed with error: {str(e)}")
+                future.result()
+                print(f"Session {session_id} completed successfully")
     finally:
         print(f"Results saved to: {csv_path}")
 
@@ -164,7 +162,8 @@ def run_all_benchmarks():
     for client_count in CLIENT_COUNTS:
         for prompt_length in PROMPT_LENGTHS:
             time.sleep(3)
-            print(f'next Benchmark {client_count}_{prompt_length}_{MAX_TOKENS}_{CONTENT_TYPE.value.lower()} will start 3s later')
+            print(
+                f'next Benchmark {client_count}_{prompt_length}_{MAX_TOKENS}_{CONTENT_TYPE.value.lower()} will start 3s later')
             run_benchmark_for_config(client_count, prompt_length)
 
     print("\nAll benchmark tests completed!")
