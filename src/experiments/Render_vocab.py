@@ -30,7 +30,7 @@ COLUMNS = [col[0] for col in BenchmarkColumns.get_all_columns()]
 
 
 def init_csv_file(client_count, prompt_length):
-    csv_filename = f"{client_count}_{prompt_length}_{MAX_TOKENS}_{graphic_type.value}_{sending_type.value}_{prompt_mode.value}_{CONTENT_TYPE.value.lower()}.csv"
+    csv_filename = f"{client_count}_{prompt_length}_{MAX_TOKENS}_{graphic_type.value}_{sending_type.value}_{prompt_mode.value}_{CONTENT_TYPE.value.lower()}_{engine_name.value.lower()}.csv"
     csv_path = os.path.join(BASE_DIR, csv_filename)
 
     directory = os.path.dirname(csv_path)
