@@ -80,4 +80,5 @@ class PromptMode(Enum):
 class EngineType(Enum):
     LLAMA = "LLAMA"
     SGLANG = "SGLANG"
-    LMDEPLOYED = "LMDEPLOYED"
+    LMDEPLOY = "LMDEPLOY"
+    VLLM = "VLLM"
