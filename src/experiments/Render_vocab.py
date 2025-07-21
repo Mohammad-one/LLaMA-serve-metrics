@@ -157,7 +157,7 @@ def run_benchmark_for_config(client_count, prompt_length):
             if sending_type.value == "D":
                 print("sleeeeep...")
                 for i in range(client_count):
-                    time.sleep(0.5)
+                    time.sleep(0.05)
                     futures[executor.submit(send_request, i, csv_path, prompt[i * index_multiplyer])] = i
             else:
                 futures = {executor.submit(send_request, i, csv_path, prompt[i * index_multiplyer]): i
