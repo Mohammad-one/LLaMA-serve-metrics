@@ -1,5 +1,7 @@
 from enum import Enum
 
+from transformers import AutoTokenizer
+
 
 class ColumnType(Enum):
     INTEGER = "int"
@@ -38,9 +40,18 @@ class BenchmarkColumns(Enum):
     def get_all_columns(cls):
         return [(column.value[0], column.value[1].value) for column in cls]
 
+
 class graphic_card(Enum):
     RTX5000 = "RTX5000"
     RTX4060 = "RTX4060"
+
+
+class LlmModel(Enum):
+    QWEN_15B = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+    QWEN_06B = "Qwen/Qwen3-0.6B"
+
+    def get_tokenizer(self):
+        return AutoTokenizer.from_pretrained(self.value)
 
 
 class QuestionsEnum(Enum):
