@@ -65,3 +65,19 @@ class QuestionsEnum(Enum):
     CAPITAL_OF_FRANCE = "What is the capital of France?"
     CONTINENTS = "How many continents are there?"
     MAIN_INGREDIENT_OF_YOGURT = "What is the main ingredient in yogurt?"
+
+
+class SendingType(Enum):
+    DELAYED = "D"
+    CONCURRENT = "C"
+
+
+class PromptMode(Enum):
+    SAME = "SAME"
+    VARIANT = "VARIANT"
+
+
+class EngineType(Enum):
+    LLAMA = "LLAMA"
+    SGLANG = "SGLANG"
+    LMDEPLOYED = "LMDEPLOYED"

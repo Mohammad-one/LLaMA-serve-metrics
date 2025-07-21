@@ -5,9 +5,10 @@ import time
 import os
 import csv
 from datetime import datetime
-from src.experiments.models.enums import BenchmarkColumns, ContentType, graphic_card, LlmModel
+from src.experiments.models.enums import BenchmarkColumns, ContentType, graphic_card, LlmModel, SendingType, \
+     EngineType, PromptMode
 
-CLIENT_COUNTS = [10, 10, 30, 50]
+CLIENT_COUNTS = [1, 10, 30, 50]
 PROMPT_LENGTHS = [256, 512, 1024]
 CONTENT_TYPE = ContentType.RENDER
 graphic_type = graphic_card.RTX5000
@@ -21,12 +22,14 @@ client = openai.OpenAI(
 )
 model = LlmModel.QWEN_15B
 tokenizer = model.get_tokenizer()
-
+sending_type = SendingType.CONCURRENT
+prompt_mode = PromptMode.SAME
+engine_name = EngineType.LLAMA
 COLUMNS = [col[0] for col in BenchmarkColumns.get_all_columns()]
 
 
 def init_csv_file(client_count, prompt_length):
-    csv_filename = f"{client_count}_{prompt_length}_{MAX_TOKENS}_{CONTENT_TYPE.value.lower()}_{graphic_type.value}.csv"
+    csv_filename = f"{client_count}_{prompt_length}_{MAX_TOKENS}_{graphic_type.value}_{sending_type.value}_{prompt_mode.value}_{CONTENT_TYPE.value.lower()}.csv"
     csv_path = os.path.join(BASE_DIR, csv_filename)
 
     directory = os.path.dirname(csv_path)
