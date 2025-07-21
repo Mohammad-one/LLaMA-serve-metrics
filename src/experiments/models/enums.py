@@ -38,6 +38,10 @@ class BenchmarkColumns(Enum):
     def get_all_columns(cls):
         return [(column.value[0], column.value[1].value) for column in cls]
 
+class graphic_card(Enum):
+    RTX5000 = "RTX5000"
+    RTX4060 = "RTX4060"
+
 
 class QuestionsEnum(Enum):
     COLOR_OF_THE_SKY = "What is the color of the sky?"
