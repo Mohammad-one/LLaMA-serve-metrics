@@ -7,8 +7,8 @@ import csv
 from datetime import datetime
 from src.experiments.models.enums import BenchmarkColumns, ContentType, graphic_card, LlmModel
 
-CLIENT_COUNTS = [50, 30, 10]
-PROMPT_LENGTHS = [2048, 1024,512 ]
+CLIENT_COUNTS = [10, 10, 30, 50]
+PROMPT_LENGTHS = [256, 512, 1024]
 CONTENT_TYPE = ContentType.RENDER
 graphic_type = graphic_card.RTX5000
 MAX_TOKENS = 2
