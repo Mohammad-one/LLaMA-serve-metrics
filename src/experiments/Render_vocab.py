@@ -9,6 +9,7 @@ from src.experiments.models.enums import BenchmarkColumns, ContentType, graphic_
      EngineType, PromptMode
 
 CLIENT_COUNTS = [1, 10, 30, 50]
+random.seed(42)
 PROMPT_LENGTHS = [256, 512, 1024]
 CONTENT_TYPE = ContentType.RENDER
 graphic_type = graphic_card.RTX5000
@@ -54,7 +55,6 @@ def save_to_csv(metrics, csv_path):
 
 def generate_prompt(prompt_length):
     vocab = list(tokenizer.get_vocab().keys())
-    random.seed(42)
     selected_tokens = random.sample(vocab, prompt_length)
     return tokenizer.decode(tokenizer.convert_tokens_to_ids(selected_tokens))
 
@@ -142,16 +142,28 @@ def send_request(session_id, csv_path, prompt):
 
 def run_benchmark_for_config(client_count, prompt_length):
     print(f"\nStarting benchmark with {client_count} clients and {prompt_length} token prompt...")
-
-    prompt = generate_prompt(prompt_length)
+    prompt = []
+    for i in range(client_count):
+        prompt.append(generate_prompt(prompt_length))
     csv_path = init_csv_file(client_count, prompt_length)
 
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=client_count) as executor:
-            futures = {executor.submit(send_request, i, csv_path, prompt): i
-                       for i in range(client_count)}
+            index_multiplyer = 0
+            if prompt_mode.value == "VARIANT":
+                index_multiplyer = 1
 
+            futures = {}
+            if sending_type.value == "D":
+                print("sleeeeep...")
+                for i in range(client_count):
+                    time.sleep(0.5)
+                    futures[executor.submit(send_request, i, csv_path, prompt[i * index_multiplyer])] = i
+            else:
+                futures = {executor.submit(send_request, i, csv_path, prompt[i * index_multiplyer]): i
+                       for i in range(client_count)}
             for future in concurrent.futures.as_completed(futures):
+
                 session_id = futures[future]
                 future.result()
                 print(f"Session {session_id} completed successfully")
